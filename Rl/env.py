@@ -70,11 +70,14 @@ class WorldEnv(gym.Env):
         
     
     def reset(self, seed = 0 ):
-        self.app = Ursina() 
+        
         self.landerPos = (5,25,5)
         self.targetPos = (random.randint(0,15),1,random.randint(0,15))
         
         try:
+            if self.app:
+                pass 
+                
             if self.target:
                 self.target.position = self.targetPos
             else:
@@ -94,6 +97,7 @@ class WorldEnv(gym.Env):
                 self.player = FirstPersonController()
 
         except:
+            self.app = Ursina() 
             self.target = Entity(model = "cube", color = color.rgb(255,255,255), collider = "box", scale =(2), position = self.targetPos)
             self.ground = Entity(model = "plane", texture = "grass", collider = "box", scale = (100,1,100))
             self.lander = Entity(model = "cube", color = color.rgb(0,0,0), collider = "box", scale =(2), position = self.landerPos)
