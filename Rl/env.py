@@ -65,8 +65,7 @@ class WorldEnv(gym.Env):
             r = Timer(0.05, destroy_entity, (leftThrust,))
             particles.append(leftThrust)
             r.start()
-        # else:
-        #     LANDER_ROTATE_X_SPEED = max((LANDER_ROTATE_X_SPEED - 5),0)
+        
 
         if action == 1:
             LANDER_SPEED_X -= LANDER_BOOSTER_ACC*time.dt/10
@@ -122,10 +121,10 @@ class WorldEnv(gym.Env):
             self.reward -= 10000
             self.done = True
         
-        if abs(lander.x) > 40:
+        if abs(lander.x) > 100:
             self.reward = -10000
             self.done = True
-        if abs(lander.z) > 40:
+        if abs(lander.z) > 100:
             self.reward = -10000
             self.done = True
         
@@ -162,7 +161,7 @@ class WorldEnv(gym.Env):
         LANDER_BOOSTER_ACC = 200
         
         self.landerPos = (5,25,5)
-        self.targetPos = (random.randint(0,15),1,random.randint(0,15))
+        self.targetPos = (random.randint(0,40),1,random.randint(0,40))
         
         try:
             if self.app:

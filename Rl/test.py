@@ -6,7 +6,7 @@ import gymnasium as gym
 env = WorldEnv()
 env.reset()
 
-model_path = "model_V2.zip"
+model_path = "model_V2_1.zip"
 model = PPO.load(model_path, env = env)
 
 episode = 500 
