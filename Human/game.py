@@ -57,7 +57,7 @@ def update():
         # lander.y += LANDER_SPEED * time.dt
         lander.rotation_x -= LANDER_ROTATE_X_SPEED*time.dt
         lander.rotation_z -= LANDER_ROTATE_Z_SPEED*time.dt 
-        if held_keys["i"] or held_keys["j"] or held_keys["k"] or held_keys["l"]:
+        if held_keys["g"]:
             direction = Vec3(
             lander.forward * (1) + lander.up * (1)
             ).normalized()
@@ -86,7 +86,9 @@ def update():
      
 
     else:
-        LANDER_SPEED = 0 
+        LANDER_SPEED_Y = 5
+        lander.y += LANDER_SPEED_Y*time.dt
+        
     
     if lander.intersects(target):
         print("Reward")
