@@ -6,18 +6,38 @@ import random
 import numpy as np
 import time 
 from collections import deque
+from threading import Timer
+
 
 
 MAX_LEN = 50
+GRAVITY = -9.8 *0.5
+LANDER_SPEED_Y = 0
+LANDER_SPEED_Z = 0
+LANDER_SPEED_X = 0
+LANDER_ROTATE_X_SPEED = 0 
+LANDER_ROTATE_Y_SPEED = 0 
+LANDER_ROTATE_Z_SPEED = 0 
 
+LANDER_BOOSTER_ACC = 200
+
+particles = []
+
+def destroy_entity(entity):
+    global particles
+    try:
+        particles.remove(entity)
+    except:
+        pass
+    destroy(entity)
 
 class WorldEnv(gym.Env):
 
     def __init__(self):
         super(WorldEnv,self).__init__()
 
-        self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Box(low=-500, high=500,shape=(6,), dtype=np.float32)
+        self.action_space = spaces.Discrete(6)
+        self.observation_space = spaces.Box(low=-500, high=500,shape=(9 + MAX_LEN,), dtype=np.float32)
     
     def step(self,action):
         self.action = action
@@ -27,49 +47,119 @@ class WorldEnv(gym.Env):
 
     def update(self):
         action = self.action
+        self.prev_actions.append(action)
+        reward =  0
         # self.prev_actions.append(action)
-        self.player.y += held_keys["space"]*0.1 
-        self.player.y -= held_keys["shift"]*0.1
+        prevh = self.lander.y
         prevp1 = np.array((self.lander.x,self.lander.z))
         prevp2 = np.array((self.target.x,self.target.z))
-        reward = 0
-        if not self.lander.intersects(self.ground).hit:
-            self.lander.y -= 0.2
-            if action == 0:
-                self.lander.x += 0.2
-            if action == 1:
-                self.lander.z -= 0.2
-            if action == 2:
-                self.lander.z += 0.2
-            if action == 3:
-                self.lander.x -= 0.2
-        else:
-            self.done = True 
+        global GRAVITY,LANDER_SPEED_Y,LANDER_BOOSTER_ACC,LANDER_ROTATE_X_SPEED,LANDER_ROTATE_Y_SPEED,LANDER_ROTATE_Z_SPEED,LANDER_SPEED_X,LANDER_SPEED_Z
+        player = self.player
+        lander = self.lander
+        player.y += held_keys["space"]*0.1 
+        player.y -= held_keys["shift"]*0.1
+       
+        if action == 0:
+            LANDER_SPEED_X += LANDER_BOOSTER_ACC*time.dt/10
+            leftThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x-1, (lander.y),lander.z))
+            r = Timer(0.05, destroy_entity, (leftThrust,))
+            particles.append(leftThrust)
+            r.start()
+        # else:
+        #     LANDER_ROTATE_X_SPEED = max((LANDER_ROTATE_X_SPEED - 5),0)
+
+        if action == 1:
+            LANDER_SPEED_X -= LANDER_BOOSTER_ACC*time.dt/10
+            rightThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x+1, (lander.y),lander.z))
+            r = Timer(0.05, destroy_entity, (rightThrust,))
+            particles.append(rightThrust)
+            r.start()
+        # else:
+        #     LANDER_ROTATE_X_SPEED = min((LANDER_ROTATE_X_SPEED + 5),0)
         
-        if held_keys["q"]:
+        if action == 2:
+            LANDER_SPEED_Z += LANDER_BOOSTER_ACC*time.dt/10
+            upThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x, (lander.y),lander.z - 1))
+            r = Timer(0.05, destroy_entity, (upThrust,))
+            particles.append(upThrust)
+            r.start()
+        # else:
+        #     LANDER_ROTATE_Z_SPEED = max((LANDER_ROTATE_Z_SPEED - 5),0)
+        
+        if action == 3:
+            LANDER_SPEED_Z -= LANDER_BOOSTER_ACC*time.dt/10
+            downThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x, (lander.y),lander.z + 1))
+            r = Timer(0.05, destroy_entity, (downThrust,))
+            particles.append(downThrust)
+            r.start()
+        # else:
+        #     LANDER_ROTATE_Z_SPEED = min((LANDER_ROTATE_Z_SPEED + 5),0)
+        if action == 4:
+            reward -= 10
+            LANDER_SPEED_Y += LANDER_BOOSTER_ACC*time.dt/10
+            downYThrust = Entity(model = "cube", color = color.rgb(255,255,0), collider = "box", scale =(1), position = (lander.x, lander.y-1,lander.z ))
+            r = Timer(0.05, destroy_entity, (downYThrust,))
+            r.start()
+            
+        lander.y += LANDER_SPEED_Y*time.dt
+        lander.x += LANDER_SPEED_X*time.dt
+        lander.z += LANDER_SPEED_Z*time.dt
+        if lander.intersects(self.target).hit:
             self.done = True 
-            quit()
+            self.reward += 10000
+
+        if not lander.intersects(self.ground).hit:
+            LANDER_SPEED_Y += GRAVITY*time.dt
+            # lander.y += LANDER_SPEED * time.dt
+            # lander.rotation_x -= LANDER_ROTATE_X_SPEED*time.dt
+            # lander.rotation_z -= LANDER_ROTATE_Z_SPEED*time.dt 
+            
+        else:
+            self.reward -= 10000
+            self.done = True
+        
+        if lander.y < 0:
+            self.reward -= 10000
+            self.done = True
+        
+        if abs(lander.x) > 40:
+            self.reward = -10000
+            self.done = True
+        if abs(lander.z) > 40:
+            self.reward = -10000
+            self.done = True
         
         p1 = np.array((self.lander.x,self.lander.z))
         p2 = np.array((self.target.x,self.target.z))
         distprev = np.linalg.norm(prevp1 - prevp2)
         dist = np.linalg.norm(p1 - p2)
 
-        if dist < 2:
-            reward += 200
+        
 
-        if dist < distprev:
-            reward += 10
+        t1 = distprev-dist
+        if t1 < 0:
+            reward += 100*t1 
         else:
-            reward -= 100
+            reward += t1
 
-        observation = [self.lander.x,self.lander.y,self.lander.z,self.target.x,self.target.y,self.target.z] 
+        observation = [self.lander.x,self.lander.y,self.lander.z,self.target.x,self.target.y,self.target.z,LANDER_SPEED_X,LANDER_SPEED_Y,LANDER_SPEED_Z] + list(self.prev_actions)
         self.observation = np.array(observation,dtype = np.float32)
         self.reward = reward
         
         
     
     def reset(self, seed = 0 ):
+        global GRAVITY,LANDER_SPEED_Y,LANDER_BOOSTER_ACC,LANDER_ROTATE_X_SPEED,LANDER_ROTATE_Y_SPEED,LANDER_ROTATE_Z_SPEED,LANDER_SPEED_X,LANDER_SPEED_Z
+
+        GRAVITY = -9.8 *0.5
+        LANDER_SPEED_Y = 0
+        LANDER_SPEED_Z = 0
+        LANDER_SPEED_X = 0
+        LANDER_ROTATE_X_SPEED = 0 
+        LANDER_ROTATE_Y_SPEED = 0 
+        LANDER_ROTATE_Z_SPEED = 0 
+
+        LANDER_BOOSTER_ACC = 200
         
         self.landerPos = (5,25,5)
         self.targetPos = (random.randint(0,15),1,random.randint(0,15))
@@ -110,7 +200,11 @@ class WorldEnv(gym.Env):
         self.prev_actions = deque(maxlen = MAX_LEN)  # however long we aspire the snake to be
         for i in range(MAX_LEN):
             self.prev_actions.append(-1) # to create history
-        observation = [landerPos[0], landerPos[1], landerPos[2],targetPos[0],targetPos[1],targetPos[2]]
+
+        self.prev_actions = deque(maxlen = MAX_LEN)  # however long we aspire the snake to be
+        for i in range(MAX_LEN):
+            self.prev_actions.append(-1)
+        observation = [landerPos[0], landerPos[1], landerPos[2],targetPos[0],targetPos[1],targetPos[2],LANDER_SPEED_X,LANDER_SPEED_Y,LANDER_SPEED_Z] + list(self.prev_actions)
         self.observation = np.array(observation,dtype = np.float32)
         self.reward = -1000
         return self.observation
