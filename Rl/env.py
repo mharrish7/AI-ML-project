@@ -58,8 +58,9 @@ class WorldEnv(gym.Env):
         lander = self.lander
         player.y += held_keys["space"]*0.1 
         player.y -= held_keys["shift"]*0.1
-       
+        reward += 10 
         if action == 0:
+            reward -= 10
             LANDER_SPEED_X += LANDER_BOOSTER_ACC*time.dt/10
             leftThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x-1, (lander.y),lander.z))
             r = Timer(0.05, destroy_entity, (leftThrust,))
@@ -68,6 +69,7 @@ class WorldEnv(gym.Env):
         
 
         if action == 1:
+            reward -= 10
             LANDER_SPEED_X -= LANDER_BOOSTER_ACC*time.dt/10
             rightThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x+1, (lander.y),lander.z))
             r = Timer(0.05, destroy_entity, (rightThrust,))
@@ -77,6 +79,7 @@ class WorldEnv(gym.Env):
         #     LANDER_ROTATE_X_SPEED = min((LANDER_ROTATE_X_SPEED + 5),0)
         
         if action == 2:
+            reward -= 10
             LANDER_SPEED_Z += LANDER_BOOSTER_ACC*time.dt/10
             upThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x, (lander.y),lander.z - 1))
             r = Timer(0.05, destroy_entity, (upThrust,))
@@ -86,6 +89,7 @@ class WorldEnv(gym.Env):
         #     LANDER_ROTATE_Z_SPEED = max((LANDER_ROTATE_Z_SPEED - 5),0)
         
         if action == 3:
+            reward -= 10
             LANDER_SPEED_Z -= LANDER_BOOSTER_ACC*time.dt/10
             downThrust = Entity(model = "cube", color = color.rgb(255,0,0), collider = "box", scale =(0.5), position = (lander.x, (lander.y),lander.z + 1))
             r = Timer(0.05, destroy_entity, (downThrust,))
@@ -132,8 +136,13 @@ class WorldEnv(gym.Env):
         p2 = np.array((self.target.x,self.target.z))
         distprev = np.linalg.norm(prevp1 - prevp2)
         dist = np.linalg.norm(p1 - p2)
-
         
+        if (lander.y < 10):
+            if abs(LANDER_SPEED_Y)  > 2:
+                reward -= 100 
+
+            if abs(LANDER_SPEED_Y) > 5:
+                reward -= 1000  
 
         t1 = distprev-dist
         if t1 < 0:
@@ -146,7 +155,7 @@ class WorldEnv(gym.Env):
         self.reward = reward
         
         
-    
+       
     def reset(self, seed = 0 ):
         global GRAVITY,LANDER_SPEED_Y,LANDER_BOOSTER_ACC,LANDER_ROTATE_X_SPEED,LANDER_ROTATE_Y_SPEED,LANDER_ROTATE_Z_SPEED,LANDER_SPEED_X,LANDER_SPEED_Z
 
@@ -206,4 +215,4 @@ class WorldEnv(gym.Env):
         observation = [landerPos[0], landerPos[1], landerPos[2],targetPos[0],targetPos[1],targetPos[2],LANDER_SPEED_X,LANDER_SPEED_Y,LANDER_SPEED_Z] + list(self.prev_actions)
         self.observation = np.array(observation,dtype = np.float32)
         self.reward = -1000
-        return self.observation
+        return self.observation,{}
