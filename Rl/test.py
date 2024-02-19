@@ -1,3 +1,4 @@
+# from env import WorldEnv
 from env import WorldEnv
 from stable_baselines3 import PPO 
 import gymnasium as gym 
@@ -6,13 +7,13 @@ import gymnasium as gym
 env = WorldEnv()
 env.reset()
 
-model_path = "model_V2_1.zip"
+model_path = "LatestBest.zip"
 model = PPO.load(model_path, env = env)
 
 episode = 500 
 
 for ep in range(episode):
-    obs = env.reset()
+    obs,info = env.reset()
     done = False 
     while not done:
         t  = model.predict(obs)

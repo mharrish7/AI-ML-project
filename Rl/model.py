@@ -1,6 +1,7 @@
 from stable_baselines3 import PPO
 import os
-from env import WorldEnv
+# from env import WorldEnv
+from env2 import WorldEnv
 import time
 
 
@@ -18,8 +19,8 @@ env = WorldEnv()
 env.reset()
 
 model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
-
-TIMESTEPS = 1000
+# model = PPO.load("30000", env = env)
+TIMESTEPS = 10000
 iters = 0
 while True:
 	iters += 1
